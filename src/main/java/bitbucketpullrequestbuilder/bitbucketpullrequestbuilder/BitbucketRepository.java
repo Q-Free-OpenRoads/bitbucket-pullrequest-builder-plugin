@@ -40,13 +40,11 @@ public class BitbucketRepository {
     private static final String BUILD_REQUEST_MARKER_TAG_SINGLE_RX = "\\#[\\w\\-\\d]+";
     private static final String BUILD_REQUEST_MARKER_TAGS_RX = "\\[bid\\:\\s?(.*)\\]";
 
-    private String projectPath;
     private BitbucketPullRequestsBuilder builder;
     private BitbucketBuildTrigger trigger;
     private ApiClient client;
     
-    public BitbucketRepository(String projectPath, BitbucketPullRequestsBuilder builder) {
-        this.projectPath = projectPath;
+    public BitbucketRepository(BitbucketPullRequestsBuilder builder) {
         this.builder = builder;
     }
 

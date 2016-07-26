@@ -1,15 +1,14 @@
 package bitbucketpullrequestbuilder.bitbucketpullrequestbuilder;
 
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.BuildState;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
 import hudson.model.Result;
-import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by nishio

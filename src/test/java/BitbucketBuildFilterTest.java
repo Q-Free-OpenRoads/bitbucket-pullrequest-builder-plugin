@@ -34,7 +34,9 @@ public class BitbucketBuildFilterTest {
     BitbucketCause cause = EasyMock.createMock(BitbucketCause.class);
     EasyMock.expect(cause.getTargetBranch()).andReturn("mock").anyTimes();    
     EasyMock.replay(cause);
-    for(Integer i : new Integer[] {1, 2, 3, 4, 5}) assertEquals("mock", cause.getTargetBranch());
+    for (int i = 0; i < 5; i++) {
+    	assertEquals("mock", cause.getTargetBranch());
+    }
   }
     
   @Test
@@ -227,7 +229,7 @@ public class BitbucketBuildFilterTest {
     
     assertEquals("Hello from mock", comments.get(2).getContent());
     
-    BitbucketRepository repo = new BitbucketRepository("", builder);
+    BitbucketRepository repo = new BitbucketRepository(builder);
     repo.init(EasyMock.createNiceMock(ApiClient.class));    
     
     List<Pullrequest.Comment> filteredComments = repo.filterPullRequestComments(comments);

@@ -1,19 +1,8 @@
 
-import antlr.ANTLRException;
-
-import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketBuildTrigger;
-import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketPullRequestsBuilder;
-import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketRepository;
-import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.ApiClient;
-
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.CredentialsStore;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -21,15 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.logging.Logger;
-import org.easymock.*;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.Assert;
-import org.jvnet.hudson.test.JenkinsRule;
-
-import jenkins.model.Jenkins;
-import org.jvnet.hudson.test.WithoutJenkins;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.httpclient.Credentials;
@@ -37,6 +17,26 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpState;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
+import org.easymock.EasyMock;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+
+import antlr.ANTLRException;
+import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketBuildTrigger;
+import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketPullRequestsBuilder;
+import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.BitbucketRepository;
+import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.ApiClient;
+import jenkins.model.Jenkins;
 
 
 interface ICredentialsInterceptor {
@@ -131,7 +131,7 @@ public class BitbucketBuildRepositoryTest {
     ).anyTimes();
     EasyMock.replay(httpFactory);            
     
-    BitbucketRepository repo = new BitbucketRepository("", builder);
+    BitbucketRepository repo = new BitbucketRepository(builder);
     repo.init(httpFactory);
     
     try { repo.postPullRequestApproval("prId"); } catch(Error e) { assertTrue(e instanceof AssertionError); }
@@ -167,7 +167,7 @@ public class BitbucketBuildRepositoryTest {
     ).anyTimes();
     EasyMock.replay(httpFactory);  
     
-    BitbucketRepository repo = new BitbucketRepository("", builder);
+    BitbucketRepository repo = new BitbucketRepository(builder);
     repo.init(httpFactory);        
     
     try { repo.postPullRequestApproval("prId"); } catch(Error e) { assertTrue(e instanceof AssertionError); }                
@@ -225,7 +225,7 @@ public class BitbucketBuildRepositoryTest {
     }        
     EasyMock.replay(builder);
     
-    BitbucketRepository repo = new BitbucketRepository("", builder);
+    BitbucketRepository repo = new BitbucketRepository(builder);
     repo.init();       
     
     for(String projectId : projectIds) {
@@ -259,7 +259,7 @@ public class BitbucketBuildRepositoryTest {
     EasyMock.expect(builder.getProjectId()).andReturn((new MD5HasherFunction(MD5)).apply("projectId")).anyTimes();
     EasyMock.replay(builder);       
     
-    BitbucketRepository repo = new BitbucketRepository("", builder);
+    BitbucketRepository repo = new BitbucketRepository(builder);
     repo.init();
     
     String buildStatusKey = repo.getClient().buildStatusKey(builder.getProjectId());
