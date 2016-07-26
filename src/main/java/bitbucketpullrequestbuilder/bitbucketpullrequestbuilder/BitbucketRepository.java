@@ -34,7 +34,6 @@ import static com.cloudbees.plugins.credentials.CredentialsMatchers.instanceOf;
  */
 public class BitbucketRepository {
     private static final Logger logger = Logger.getLogger(BitbucketRepository.class.getName());
-    private static final String BUILD_DESCRIPTION = "%s: %s into %s";
     private static final String BUILD_REQUEST_MARKER = "test this please";
     private static final String BUILD_REQUEST_DONE_MARKER = "ttp build flag";
     private static final String BUILD_REQUEST_MARKER_TAG_SINGLE_RX = "\\#[\\w\\-\\d]+";
@@ -124,19 +123,19 @@ public class BitbucketRepository {
     }
 
     public void setBuildStatus(BitbucketCause cause, BuildState state, String buildUrl) {
-        String comment = null;
         String sourceCommit = cause.getSourceCommitHash();
         String owner = cause.getRepositoryOwner();
+        String projectDisplayName = builder.getProject().getDisplayName();
         String repository = cause.getRepositoryName();
         String destinationBranch = cause.getTargetBranch();
+        String destinationCommit = cause.getDestinationCommitHash();
 
-        logger.info("setBuildStatus " + state + " for commit: " + sourceCommit + " with url " + buildUrl);
+        logger.info("setBuildStatus " + state + " for source commit " + sourceCommit
+        		+ " and destination commit " + destinationCommit + " with url " + buildUrl);
 
-        if (state == BuildState.FAILED || state == BuildState.SUCCESSFUL) {
-            comment = String.format(BUILD_DESCRIPTION, builder.getProject().getDisplayName(), sourceCommit, destinationBranch);
-        }
-
-        this.client.setBuildStatus(owner, repository, sourceCommit, state, buildUrl, comment, this.builder.getProjectId());
+        this.client.setBuildStatus(owner, repository, projectDisplayName,
+        		sourceCommit, destinationBranch, destinationCommit, state, buildUrl,
+        		this.builder.getProjectId());
     }
 
     public void deletePullRequestApproval(String pullRequestId) {
@@ -213,6 +212,7 @@ public class BitbucketRepository {
             Pullrequest.Revision source = pullRequest.getSource();
             String sourceCommit = source.getCommit().getHash();
             Pullrequest.Revision destination = pullRequest.getDestination();
+            String destinationCommit = pullRequest.getDestination().getCommit().getHash();
             String owner = destination.getRepository().getOwnerName();
             String repositoryName = destination.getRepository().getRepositoryName();
 
@@ -220,8 +220,9 @@ public class BitbucketRepository {
             String buildKeyPart = this.builder.getProjectId();
 
             final boolean commitAlreadyBeenProcessed = this.client.hasBuildStatus(
-              sourceRepository.getOwnerName(), sourceRepository.getRepositoryName(), sourceCommit, buildKeyPart
-            );
+              sourceRepository.getOwnerName(), sourceRepository.getRepositoryName(),
+              sourceCommit, destinationCommit, trigger.getCheckDestinationCommit(),
+              buildKeyPart);
             if (commitAlreadyBeenProcessed) logger.log(Level.INFO, 
               "Commit {0}#{1} has already been processed", 
               new Object[]{ sourceCommit, buildKeyPart }
