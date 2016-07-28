@@ -42,7 +42,7 @@ public class BitbucketPullRequestsBuilder {
         if (this.project == null || this.trigger == null) {
             throw new IllegalStateException();
         }
-        this.repository = new BitbucketRepository(this.trigger.getProjectPath(), this);
+        this.repository = new BitbucketRepository(this);
         this.builds = new BitbucketBuilds(this.trigger, this.repository);
         return this;
     }

@@ -146,13 +146,8 @@ public class ApiClient {
     public void setBuildStatus(String owner, String repositoryName, String projectDisplayName,
     		String sourceRevision, String destinationBranch, String destinationRevison,
     		BuildState state, String buildUrl, String keyEx) {
-        String comment;
-        if (state == BuildState.FAILED || state == BuildState.SUCCESSFUL) {
-            comment = String.format(BUILD_DESCRIPTION, projectDisplayName, sourceRevision,
+        String comment = String.format(BUILD_DESCRIPTION, projectDisplayName, sourceRevision,
             		destinationBranch, destinationRevison);
-        } else {
-        	comment = null;
-        }
     	
         String url = v2(owner, repositoryName, "/commit/" + sourceRevision + "/statuses/build");
         String computedKey = this.computeAPIKey(keyEx);
