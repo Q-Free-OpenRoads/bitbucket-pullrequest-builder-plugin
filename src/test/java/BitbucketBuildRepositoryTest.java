@@ -283,6 +283,7 @@ public class BitbucketBuildRepositoryTest {
     EasyMock.expect(trigger.getCiSkipPhrases()).andReturn("");
     EasyMock.expect(trigger.getBranchesFilterBySCMIncludes()).andReturn(false);
     EasyMock.expect(trigger.getBranchesFilter()).andReturn("");
+    EasyMock.expect(trigger.getCheckDestinationCommit()).andReturn(false);
     EasyMock.replay(trigger);
 
     // setup mock BitbucketPullRequestsBuilder

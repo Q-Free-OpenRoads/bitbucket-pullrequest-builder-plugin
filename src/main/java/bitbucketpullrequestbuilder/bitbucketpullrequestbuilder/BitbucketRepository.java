@@ -33,7 +33,6 @@ import static com.cloudbees.plugins.credentials.CredentialsMatchers.instanceOf;
  */
 public class BitbucketRepository {
     private static final Logger logger = Logger.getLogger(BitbucketRepository.class.getName());
-    private static final String BUILD_DESCRIPTION = "%s: %s into %s";
     private static final String BUILD_REQUEST_DONE_MARKER = "ttp build flag";
     private static final String BUILD_REQUEST_MARKER_TAG_SINGLE_RX = "\\#[\\w\\-\\d]+";
     private static final String BUILD_REQUEST_MARKER_TAGS_RX = "\\[bid\\:\\s?(.*)\\]";
@@ -127,19 +126,19 @@ public class BitbucketRepository {
     }
 
     public void setBuildStatus(BitbucketCause cause, BuildState state, String buildUrl) {
-        String comment = null;
         String sourceCommit = cause.getSourceCommitHash();
         String owner = cause.getRepositoryOwner();
+        String projectDisplayName = builder.getProject().getDisplayName();
         String repository = cause.getRepositoryName();
         String destinationBranch = cause.getTargetBranch();
+        String destinationCommit = cause.getDestinationCommitHash();
 
-        logger.fine("setBuildStatus " + state + " for commit: " + sourceCommit + " with url " + buildUrl);
+        logger.fine("setBuildStatus " + state + " for source commit " + sourceCommit
+                + " and destination commit " + destinationCommit + " with url " + buildUrl);
 
-        if (state == BuildState.FAILED || state == BuildState.SUCCESSFUL) {
-            comment = String.format(BUILD_DESCRIPTION, builder.getProject().getDisplayName(), sourceCommit, destinationBranch);
-        }
-
-        this.client.setBuildStatus(owner, repository, sourceCommit, state, buildUrl, comment, this.builder.getProjectId());
+        this.client.setBuildStatus(owner, repository, projectDisplayName,
+                sourceCommit, destinationBranch, destinationCommit, state, buildUrl,
+                this.builder.getProjectId());
     }
 
     public void deletePullRequestApproval(String pullRequestId) {
@@ -213,7 +212,7 @@ public class BitbucketRepository {
     }
 
     private boolean isBuildTarget(Pullrequest pullRequest) {
-        if (pullRequest.getState() != null && pullRequest.getState().equals("OPEN")) {
+        if ("OPEN".equals(pullRequest.getState())) {
             if (isSkipBuild(pullRequest.getTitle()) || !isFilteredBuild(pullRequest)) {
                 return false;
             }
@@ -221,6 +220,7 @@ public class BitbucketRepository {
             Pullrequest.Revision source = pullRequest.getSource();
             String sourceCommit = source.getCommit().getHash();
             Pullrequest.Revision destination = pullRequest.getDestination();
+            String destinationCommit = getDestinationCommitHash(pullRequest);
             String owner = destination.getRepository().getOwnerName();
             String repositoryName = destination.getRepository().getRepositoryName();
 
@@ -228,8 +228,9 @@ public class BitbucketRepository {
             String buildKeyPart = this.builder.getProjectId();
 
             final boolean commitAlreadyBeenProcessed = this.client.hasBuildStatus(
-              sourceRepository.getOwnerName(), sourceRepository.getRepositoryName(), sourceCommit, buildKeyPart
-            );
+              sourceRepository.getOwnerName(), sourceRepository.getRepositoryName(),
+              sourceCommit, destinationCommit, trigger.getCheckDestinationCommit(),
+              buildKeyPart);
             if (commitAlreadyBeenProcessed) logger.log(Level.FINE,
               "Commit {0}#{1} has already been processed",
               new Object[]{ sourceCommit, buildKeyPart }
@@ -280,32 +281,17 @@ public class BitbucketRepository {
     }
 
     private boolean isFilteredBuild(Pullrequest pullRequest) {
-
-        final String pullRequestId = pullRequest.getId();
-        final String pullRequestTitle = pullRequest.getTitle();
-        final String destinationRepoName = pullRequest.getDestination().getRepository().getRepositoryName();
-
-        // pullRequest.getDestination().getCommit() may return null for pull requests with merge conflicts
-        // * see: https://github.com/nishio-dens/bitbucket-pullrequest-builder-plugin/issues/119
-        // * see: https://github.com/nishio-dens/bitbucket-pullrequest-builder-plugin/issues/98
-        final String destinationCommitHash;
-        if (pullRequest.getDestination().getCommit() == null) {
-            logger.log(Level.INFO, "Pull request #{0} ''{1}'' in repo ''{2}'' has a null value for destination commit.",
-                    new Object[]{pullRequestId, pullRequestTitle, destinationRepoName});
-            destinationCommitHash = null;
-        } else {
-            destinationCommitHash = pullRequest.getDestination().getCommit().getHash();
-        }
+        final String destinationCommitHash = getDestinationCommitHash(pullRequest);
 
         BitbucketCause cause = new BitbucketCause(
           pullRequest.getSource().getBranch().getName(),
           pullRequest.getDestination().getBranch().getName(),
           pullRequest.getSource().getRepository().getOwnerName(),
           pullRequest.getSource().getRepository().getRepositoryName(),
-          pullRequestId,
+          pullRequest.getId(),
           pullRequest.getDestination().getRepository().getOwnerName(),
-          destinationRepoName,
-          pullRequestTitle,
+          pullRequest.getDestination().getRepository().getRepositoryName(),
+          pullRequest.getTitle(),
           pullRequest.getSource().getCommit().getHash(),
           destinationCommitHash,
           pullRequest.getAuthor().getCombinedUsername()
@@ -324,6 +310,21 @@ public class BitbucketRepository {
         return filter.approved(cause);
     }
 
+    private String getDestinationCommitHash(Pullrequest pullRequest) {
+        // pullRequest.getDestination().getCommit() may return null for pull requests with merge conflicts
+        // * see: https://github.com/nishio-dens/bitbucket-pullrequest-builder-plugin/issues/119
+        // * see: https://github.com/nishio-dens/bitbucket-pullrequest-builder-plugin/issues/98
+        if (pullRequest.getDestination().getCommit() == null) {
+            final String pullRequestId = pullRequest.getId();
+            final String pullRequestTitle = pullRequest.getTitle();
+            final String destinationRepoName = pullRequest.getDestination().getRepository().getRepositoryName();
+            logger.log(Level.INFO, "Pull request #{0} ''{1}'' in repo ''{2}'' has a null value for destination commit.",
+                    new Object[]{pullRequestId, pullRequestTitle, destinationRepoName});
+            return null;
+        }
+        return pullRequest.getDestination().getCommit().getHash();
+    }
+    
     private StandardUsernamePasswordCredentials getCredentials(String credentialsId) {
         if (null == credentialsId) return null;
         return CredentialsMatchers
